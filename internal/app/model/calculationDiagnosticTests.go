@@ -5,7 +5,7 @@ type CalculationDiagnosticTests struct {
 	ID	int
 	DiagnosticTestsID	int
 	DeviceUsersID	int
-	patientID	int
+	PatientID	int
 	Device	string
 	Value1	int
 	Fall1	int
