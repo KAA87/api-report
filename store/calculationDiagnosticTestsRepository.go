@@ -8,12 +8,12 @@ type CalculationDiagnosticTestsRepository struct {
 }
 
 // FindByDiagnosticTestId ...
-func (r *CalculationDiagnosticTestsRepository) FindByDiagnosticTestId(diagnostic_test_id int) (*model.CalculationDiagnosticTests, error) {
+func (r *CalculationDiagnosticTestsRepository) FindByDiagnosticTestId(diagnosticTestId int) (*model.CalculationDiagnosticTests, error) {
 	t := &model.CalculationDiagnosticTests{}
 
 	if err := r.store.db.QueryRow(
-		"SELECT id,diagnostic_tests_id from calculation_diagnostic_tests WHERE diagnostic_tests_id = $1",
-		diagnostic_test_id,
+		"SELECT * from calculation_diagnostic_tests WHERE diagnostic_tests_id = ?",
+		diagnosticTestId,
 	).Scan(
 		&t.ID,
 		&t.DiagnosticTestsID,
@@ -118,7 +118,7 @@ func (r *CalculationDiagnosticTestsRepository) FindByDiagnosticTestId(diagnostic
 		&t.Countitemac,
 		&t.Countitemwa,
 		&t.Createdate,
-	); err != nil{
+	); err != nil {
 		return nil, err
 	}
 
