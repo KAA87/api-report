@@ -2,9 +2,10 @@ package apiserver
 
 import (
 	"encoding/json"
+	"github.com/KAA87/api-report.git/internal/app/calculations"
 	"github.com/KAA87/api-report.git/store"
-	"github.com/sirupsen/logrus"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 )
@@ -14,7 +15,7 @@ type APIServer struct {
 	config *Config
 	logger *logrus.Logger
 	router *mux.Router
-	store *store.Store
+	store  *store.Store
 }
 
 // New ...
@@ -40,7 +41,7 @@ func (s *APIServer) Start() error {
 
 	s.logger.Info("starting api server")
 
-	return http.ListenAndServe(s.config.BindAddr,s.router)
+	return http.ListenAndServe(s.config.BindAddr, s.router)
 }
 
 func (s *APIServer) configureLogger() error {
@@ -54,10 +55,11 @@ func (s *APIServer) configureLogger() error {
 	return nil
 }
 
-func (s *APIServer) configureRouter()  {
-	s.router.HandleFunc("/hello",s.handleHello())
+func (s *APIServer) configureRouter() {
+	s.router.HandleFunc("/hello", s.handleHello())
 
-	s.router.HandleFunc("/get-test",s.handleGetTest())
+	s.router.HandleFunc("/get-test", s.handleGetTest())
+	s.router.HandleFunc("/get-report", s.handleGetReport())
 }
 
 func (s *APIServer) configureStore() error {
@@ -73,43 +75,81 @@ func (s *APIServer) configureStore() error {
 
 func (s *APIServer) handleHello() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w,"Hello")
+		io.WriteString(w, "Hello")
 	}
 }
 
-func (s *APIServer) handleGetTest() http.HandlerFunc  {
+func (s *APIServer) handleGetTest() http.HandlerFunc {
 
 	type request struct {
 		TestId int `json:"testId,string"`
-		GeneralState int8 `json:"generalState,string"`
-		Dynamics int8 `json:"dynamics,string"`
-		Projection int8 `json:"projection,string"`
-		Spine int8 `json:"spine,string"`
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		req := &request{}
 
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-			s.error(w,r,http.StatusBadRequest,err)
+			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
 		t, err := s.store.CalculationDiagnosticTests().FindByDiagnosticTestId(req.TestId)
 		if err != nil {
-			s.error(w,r,http.StatusNotFound,err)
+			s.error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		s.respond(w,r,http.StatusOK,t)
+		s.respond(w, r, http.StatusOK, t)
+	}
+}
+
+func (s *APIServer) handleGetReport() http.HandlerFunc {
+
+	type request struct {
+		TestId       int  `json:"testId,string"`
+		GeneralState int8 `json:"generalState,string"`
+		Dynamics     int8 `json:"dynamics,string"`
+		Projection   int8 `json:"projection,string"`
+		Spine        int8 `json:"spine,string"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		req := &request{}
+
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		t, err := s.store.CalculationDiagnosticTests().FindByDiagnosticTestId(req.TestId)
+		if err != nil {
+			s.error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		if req.GeneralState != 0 {
+
+			rGS, err := calculations.CalcGeneralState(t)
+			if err != nil {
+				s.error(w, r, http.StatusNotFound, err)
+				return
+			}
+
+			s.respond(w, r, http.StatusOK, rGS)
+
+		}
+		// TODO::KAA проверить какие отчеты нужны и просчитать их в мап
+
+		s.respond(w, r, http.StatusOK, t)
 	}
 }
 
 func (s *APIServer) error(w http.ResponseWriter, r *http.Request, code int, err error) {
-	s.respond(w,r,code,map[string]string{"error":err.Error()})
+	s.respond(w, r, code, map[string]string{"error": err.Error()})
 }
 
-func (s *APIServer) respond(w http.ResponseWriter, r *http.Request, code int, data interface{}){
+func (s *APIServer) respond(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	w.WriteHeader(code)
 	if data != nil {
 		json.NewEncoder(w).Encode(data)

@@ -7,9 +7,10 @@ import (
 
 // Store ...
 type Store struct {
-	config *Config
-	db *sql.DB
+	config                               *Config
+	db                                   *sql.DB
 	calculationDiagnosticTestsRepository *CalculationDiagnosticTestsRepository
+	SignalRateIntervalRepository *SignalRateIntervalRepository
 }
 
 // New ...
@@ -51,4 +52,17 @@ func (s *Store) CalculationDiagnosticTests() *CalculationDiagnosticTestsReposito
 	}
 
 	return s.calculationDiagnosticTestsRepository
+}
+
+// SignalRateInterval ...
+func (s *Store) SignalRateInterval() *SignalRateIntervalRepository {
+	if s.SignalRateIntervalRepository != nil {
+		return s.SignalRateIntervalRepository
+	}
+
+	s.SignalRateIntervalRepository = &SignalRateIntervalRepository{
+		store: s,
+	}
+
+	return s.SignalRateIntervalRepository
 }

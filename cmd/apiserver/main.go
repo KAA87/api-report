@@ -11,11 +11,11 @@ var (
 	configPath string
 )
 
-func init()  {
+func init() {
 	flag.StringVar(&configPath, "config-path", "configs/apiserver.toml", "path to config file")
 }
 
-func main()  {
+func main() {
 	flag.Parse()
 
 	config := apiserver.NewConfig()
